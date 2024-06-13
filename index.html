@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EMI Calculator</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f4f4;
+        margin: 0;
+        padding: 0;
+    }
+    .container {
+        max-width: 800px;
+        margin: 50px auto;
+        background-color: #fff;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        padding: 20px;
+    }
+    .container h1 {
+        text-align: center;
+        color: #333;
+    }
+    form {
+        margin-top: 20px;
+    }
+    label {
+        display: block;
+        margin-bottom: 5px;
+        color: #666;
+    }
+    input[type="number"] {
+        width: 100%;
+        padding: 10px;
+        margin: 5px 0 15px 0;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-sizing: border-box;
+    }
+    input[type="submit"] {
+        width: 100%;
+        background-color: #4CAF50;
+        color: white;
+        padding: 10px 20px;
+        margin: 8px 0;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+    #emiResult {
+        margin-top: 20px;
+        text-align: center;
+    }
+    canvas {
+        margin-top: 30px;
+    }
+    table {
+        width: 100%;
+        margin-top: 30px;
+        border-collapse: collapse;
+    }
+    th, td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: center;
+    }
+    th {
+        background-color: #f2f2f2;
+    }
+</style>
+</head>
+<body>
+<div class="container">
+    <h1>EMI Calculator</h1>
+    <form id="emiForm">
+        <label for="loanAmount">Loan Amount (in Rupees):</label>
+        <input type="number" id="loanAmount" required>
+
+        <label for="interestRate">Annual Interest Rate (%):</label>
+        <input type="number" id="interestRate" required>
+
+        <label for="loanTerm">Loan Term (in years):</label>
+        <input type="number" id="loanTerm" required>
+
+        <input type="submit" value="Calculate EMI">
+    </form>
+
+    <div id="emiResult"></div>
+    <canvas id="emiChart" width="800" height="400"></canvas>
+    <div id="amortizationSchedule"></div>
+</div>
+
+<script>
+document.getElementById('emiForm').onsubmit = function(event) {
+    event.preventDefault();
+    var loanAmount = parseFloat(document.getElementById('loanAmount').value);
+    var interestRate = parseFloat(document.getElementById('interestRate').value) / 100 / 12;
+    var loanTermMonths = parseFloat(document.getElementById('loanTerm').value) * 12;
+    var monthlyPayment = (loanAmount * interestRate * Math.pow(1 + interestRate, loanTermMonths)) / (Math.pow(1 + interestRate, loanTermMonths) - 1);
+    
+    // Calculate amortization schedule
+    var amortizationSchedule = [];
+    var remainingPrincipal = loanAmount;
+    for (var i = 1; i <= loanTermMonths; i++) {
+        var interestPayment = remainingPrincipal * interestRate;
+        var principalPayment = monthlyPayment - interestPayment;
+        remainingPrincipal -= principalPayment;
+        amortizationSchedule.push({ month: i, principalPayment: principalPayment, interestPayment: interestPayment, remainingPrincipal: remainingPrincipal });
+    }
+
+    // Display amortization schedule
+    var scheduleHtml = "<h2>Amortization Schedule</h2><table><tr><th>Month</th><th>Principal Payment</th><th>Interest Payment</th><th>Remaining Principal</th></tr>";
+    amortizationSchedule.forEach(function(entry) {
+        scheduleHtml += "<tr><td>" + entry.month + "</td><td>" + entry.principalPayment.toFixed(2) + "</td><td>" + entry.interestPayment.toFixed(2) + "</td><td>" + entry.remainingPrincipal.toFixed(2) + "</td></tr>";
+    });
+    scheduleHtml += "</table>";
+    document.getElementById('amortizationSchedule').innerHTML = scheduleHtml;
+
+    // Display EMI
+    document.getElementById('emiResult').innerHTML = "Your EMI is: " + monthlyPayment.toFixed(2) + " Rupees";
+
+    // Draw chart
+    var ctx = document.getElementById('emiChart').getContext('2d');
+    var labels = amortizationSchedule.map(function(entry) { return 'Month ' + entry.month; });
+    var principalPayments = amortizationSchedule.map(function(entry) { return entry.principalPayment; });
+    var interestPayments = amortizationSchedule.map(function(entry) { return entry.interestPayment; });
+    var chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Principal Payment',
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 1,
+                data: principalPayments
+            }, {
+                label: 'Interest Payment',
+                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                borderColor: 'rgba(255, 99, 132, 1)',
+                borderWidth: 1,
+                data: interestPayments
+            }]
+        },
+        options: {
+            scales: {
+                yAxes: [{
+                    ticks: {
+                        beginAtZero: true
+                    }
+                }]
+            }
+        }
+    });
+};
+</script>
+</body>
+</html>
